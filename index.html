@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IQ Test - Infinite Random Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #00f2fe;
+            --accent: #4facfe;
+            --success: #00ff88;
+            --danger: #ff4b2b;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            overflow: hidden;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        h1 {
+            font-weight: 900;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 5px;
+        }
+
+        .btn-main {
+            background: linear-gradient(45deg, var(--primary), var(--accent));
+            border: none; padding: 15px 40px; color: black;
+            font-weight: 700; border-radius: 12px; cursor: pointer;
+            transition: 0.3s; margin-top: 20px;
+        }
+
+        .btn-main:hover { transform: scale(1.05); box-shadow: 0 0 20px rgba(0, 242, 254, 0.5); }
+
+        .options-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 25px;
+        }
+
+        .btn-opt {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 15px; color: white; border-radius: 12px;
+            cursor: pointer; transition: 0.2s; font-size: 0.9rem;
+        }
+
+        .btn-opt.correct { background: var(--success) !important; color: black; font-weight: bold; }
+        .btn-opt.wrong { background: var(--danger) !important; color: white; }
+
+        #feedback-pop {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 5rem; display: none; z-index: 100; pointer-events: none;
+        }
+
+        .ach-box {
+            display: none; margin-top: 20px; padding: 20px; border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1); border: 2px solid gold;
+        }
+
+        #score-num { font-size: 4.5rem; font-weight: 900; margin: 0; }
+
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .shake-anim { animation: shake 0.2s infinite; }
+    </style>
+</head>
+<body>
+
+<div class="glass-card">
+    <div id="feedback-pop"></div>
+
+    <div id="view-intro">
+        <h1>IQ TEST v4.0</h1>
+        <p style="opacity: 0.7;">Ada 50+ soal acak. <br>Hanya 10 soal yang akan muncul per sesi.</p>
+        <button class="btn-main" onclick="startQuiz()">GAS MULAI</button>
+    </div>
+
+    <div id="view-quiz" style="display:none;">
+        <p id="q-progress" style="font-size: 0.8rem; color: var(--primary); font-weight: 700;"></p>
+        <h3 id="q-text" style="min-height: 80px; display: flex; align-items: center; justify-content: center;"></h3>
+        <div class="options-grid" id="q-options"></div>
+    </div>
+
+    <div id="view-result" style="display:none;">
+        <h2 style="margin:0">HASIL IQ LU:</h2>
+        <p id="score-num">0</p>
+        <p id="iq-comment" style="font-weight: 700; font-size: 1.2rem;"></p>
+
+        <div id="ach-robot" class="ach-box">
+            <span style="font-size: 50px;">🏆</span>
+            <p style="color: gold; margin: 0;">ACHIEVEMENT: LU ROBOT APA GIMANA JIR</p>
+        </div>
+
+        <div id="ach-dongo" class="ach-box" style="border-color: var(--danger);">
+            <span style="font-size: 50px;">🤡</span>
+            <p style="color: var(--danger); margin: 0;">ACHIEVEMENT: MANUSIA PALING DONGO SEDUNIA</p>
+        </div>
+
+        <button class="btn-main" onclick="location.reload()" style="padding: 10px 25px; font-size: 0.8rem;">ULANGI TES</button>
+    </div>
+</div>
+
+<audio id="snd-correct" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+<audio id="snd-wrong" src="https://assets.mixkit.co/active_storage/sfx/2955/2955-preview.mp3"></audio>
+<audio id="snd-win" src="https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3"></audio>
+<audio id="snd-fail" src="https://assets.mixkit.co/active_storage/sfx/2803/2803-preview.mp3"></audio>
+
+<script>
+    // BANK SOAL BESAR (50 Soal)
+    const questionBank = [
+        { q: "1+1 berapa?", a: ["2", "3", "11", "Jendela"], c: 0 },
+        { q: "Mana yang lebih berat: 1kg Kapas atau 1kg Besi?", a: ["Besi", "Kapas", "Sama Saja", "Gatau"], c: 2 },
+        { q: "Apa nama planet ke-3?", a: ["Mars", "Venus", "Bumi", "Jupiter"], c: 2 },
+        { q: "Ada berapa hari dalam seminggu?", a: ["5", "6", "7", "8"], c: 2 },
+        { q: "Jika ada 3 apel dan kamu ambil 2, berapa apel yang kamu punya?", a: ["1", "2", "3", "0"], c: 1 },
+        { q: "Apa ibu kota Indonesia?", a: ["Jakarta", "Surabaya", "Bandung", "Medan"], c: 0 },
+        { q: "Warna campuran Merah dan Kuning?", a: ["Hijau", "Ungu", "Oranye", "Cokelat"], c: 2 },
+        { q: "Hewan apa yang bisa hidup di air dan darat?", a: ["Ikan", "Kucing", "Amfibi", "Burung"], c: 2 },
+        { q: "Berapa 10 x 0?", a: ["10", "1", "0", "Tak Terhingga"], c: 2 },
+        { q: "Siapa Presiden pertama RI?", a: ["Soeharto", "Soekarno", "Habibie", "Gus Dur"], c: 1 },
+        { q: "Berapa jumlah kaki laba-laba?", a: ["6", "8", "10", "12"], c: 1 },
+        { q: "Huruf ke-5 dari alfabet?", a: ["D", "E", "F", "G"], c: 1 },
+        { q: "Matahari terbit dari sebelah?", a: ["Barat", "Selatan", "Utara", "Timur"], c: 3 },
+        { q: "Benua terbesar di dunia?", a: ["Afrika", "Eropa", "Asia", "Amerika"], c: 2 },
+        { q: "Alat musik yang dipukul?", a: ["Gitar", "Suling", "Drum", "Biola"], c: 2 },
+        { q: "Singkatan dari IKN?", a: ["Ibu Kota Negara", "Inti Kota Nasional", "Ikatan Kota New", "Ibu Kita Nanti"], c: 0 },
+        { q: "Berapa 1/2 dari 100?", a: ["25", "50", "75", "10"], c: 1 },
+        { q: "Lawan kata 'Siang'?", a: ["Pagi", "Sore", "Malam", "Gelap"], c: 2 },
+        { q: "Ayam apa yang bisa terbang?", a: ["Ayam Bakar", "Ayam Goreng", "Ayam Jago", "Semua Bisa"], c: 3 },
+        { q: "Air mendidih pada suhu?", a: ["50°C", "80°C", "100°C", "120°C"], c: 2 },
+        { q: "Tuju - h = ?", a: ["7", "6", "Tuju", "Tujuh"], c: 1 },
+        { q: "Sebutkan satu kata typo di sini?", a: ["Bener", "Typo", "Tuyo", "Makan"], c: 2 },
+        { q: "Siapa penemu lampu?", a: ["Einstein", "Newton", "Thomas Edison", "Tesla"], c: 2 },
+        { q: "Anak sapi namanya?", a: ["Pedet", "Cindil", "Kucing", "Sapi Kecil"], c: 0 },
+        { q: "5 x 5 + 5?", a: ["50", "30", "25", "35"], c: 1 },
+        { q: "Ada berapa detik dalam 1 menit?", a: ["100", "60", "360", "50"], c: 1 },
+        { q: "Negara kincir angin?", a: ["Jerman", "Belanda", "Prancis", "Italia"], c: 1 },
+        { q: "Monas ada di kota?", a: ["Bogor", "Bekasi", "Jakarta", "Depok"], c: 2 },
+        { q: "Vitamin C banyak ada di?", a: ["Daging", "Susu", "Jeruk", "Nasi"], c: 2 },
+        { q: "Hewan tercepat di dunia?", a: ["Singa", "Kuda", "Cheetah", "Kelinci"], c: 2 },
+        { q: "Samudra terluas?", a: ["Hindia", "Atlantik", "Pasifik", "Arktik"], c: 2 },
+        { q: "Berapa sisi pada segitiga?", a: ["2", "3", "4", "5"], c: 1 },
+        { q: "Batik berasal dari?", a: ["Malaysia", "Indonesia", "Singapura", "Thailand"], c: 1 },
+        { q: "Gunung tertinggi di dunia?", a: ["Semeru", "Everest", "Fuji", "Merapi"], c: 1 },
+        { q: "Apa itu H2O?", a: ["Udara", "Api", "Tanah", "Air"], c: 3 },
+        { q: "Alat untuk melihat benda kecil?", a: ["Teleskop", "Mikroskop", "Kaca Pembesar", "Kacamata"], c: 1 },
+        { q: "Berapa 12 : 3?", a: ["3", "4", "5", "6"], c: 1 },
+        { q: "Pancasila ada berapa sila?", a: ["4", "5", "6", "7"], c: 1 },
+        { q: "Siapa itu Naruto?", a: ["Ninja", "Bajak Laut", "Dokter", "Sopir"], c: 0 },
+        { q: "Buah yang kulitnya berduri?", a: ["Apel", "Durian", "Pisang", "Jeruk"], c: 1 },
+        { q: "Warna langit saat cerah?", a: ["Merah", "Hijau", "Biru", "Kuning"], c: 2 },
+        { q: "Berapa 9 x 9?", a: ["72", "81", "90", "100"], c: 1 },
+        { q: "Gudeg makanan khas mana?", a: ["Jakarta", "Solo", "Yogyakarta", "Bali"], c: 2 },
+        { q: "Satuan berat emas?", a: ["Liter", "Meter", "Gram", "Watt"], c: 2 },
+        { q: "Apa itu HDD?", a: ["Memory", "Hard Disk", "Processor", "Keyboard"], c: 1 },
+        { q: "Ibu kota Jawa Tengah?", a: ["Semarang", "Solo", "Magelang", "Tegal"], c: 0 },
+        { q: "Tanda berhenti lampu lalin?", a: ["Hijau", "Kuning", "Merah", "Biru"], c: 2 },
+        { q: "Akar dari 64?", a: ["6", "7", "8", "9"], c: 2 },
+        { q: "Bulan setelah Agustus?", a: ["Oktober", "September", "Juli", "November"], c: 1 },
+        { q: "Benua tempat tinggal kanguru?", a: ["Afrika", "Amerika", "Australia", "Antartika"], c: 2 }
+    ];
+
+    let sessionQuestions = [];
+    let idx = 0;
+    let score = 0;
+    let isClickable = true;
+
+    function startQuiz() {
+        document.getElementById('view-intro').style.display = 'none';
+        document.getElementById('view-quiz').style.display = 'block';
+        // Acak bank soal dan ambil 10
+        sessionQuestions = questionBank.sort(() => 0.5 - Math.random()).slice(0, 10);
+        showQuestion();
+    }
+
+    function showQuestion() {
+        isClickable = true;
+        const q = sessionQuestions[idx];
+        document.getElementById('feedback-pop').style.display = 'none';
+        document.getElementById('q-progress').innerText = `SOAL ${idx + 1} / 10`;
+        document.getElementById('q-text').innerText = q.q;
+        
+        const optDiv = document.getElementById('q-options');
+        optDiv.innerHTML = '';
+        
+        q.a.forEach((opt, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'btn-opt';
+            btn.innerText = opt;
+            btn.onclick = () => check(i, btn);
+            optDiv.appendChild(btn);
+        });
+    }
+
+    function check(choice, btn) {
+        if (!isClickable) return;
+        isClickable = false;
+
+        const correct = sessionQuestions[idx].c;
+        const pop = document.getElementById('feedback-pop');
+        
+        if (choice === correct) {
+            score += 10;
+            btn.classList.add('correct');
+            pop.innerText = "✅";
+            document.getElementById('snd-correct').play();
+        } else {
+            btn.classList.add('wrong');
+            pop.innerText = "❌";
+            document.getElementById('snd-wrong').play();
+            document.querySelectorAll('.btn-opt')[correct].classList.add('correct');
+        }
+
+        pop.style.display = 'block';
+
+        setTimeout(() => {
+            idx++;
+            if (idx < 10) showQuestion(); else showResult();
+        }, 800);
+    }
+
+    function showResult() {
+        document.getElementById('view-quiz').style.display = 'none';
+        document.getElementById('view-result').style.display = 'block';
+        document.getElementById('score-num').innerText = score;
+        
+        const comm = document.getElementById('iq-comment');
+        const rbt = document.getElementById('ach-robot');
+        const dng = document.getElementById('ach-dongo');
+
+        let msg = "";
+        if (score === 100) {
+            msg = "lu robot apa gimana jir";
+            rbt.style.display = "block";
+            document.getElementById('snd-win').play();
+        } else if (score === 0) {
+            msg = "selamat anda dapat achievement manusia paling dongo sedunia";
+            dng.style.display = "block";
+            document.getElementById('snd-fail').play();
+        } else if (score === 10) msg = "dongo nya kebangetan inimah";
+        else if (score === 20) msg = "LU DONGO APA GIMANA JIR";
+        else if (score === 30) msg = "lumayan dongo juga lu ya";
+        else if (score === 40) msg = "setengah dongo ni ye";
+        else if (score === 50) msg = "normal";
+        else if (score === 60) msg = "lumayan";
+        else if (score === 70) msg = "lumayan pinter ni anak";
+        else if (score === 80) msg = "mantap ini yang kucari";
+        else if (score === 90) msg = "fix sekolah swasta";
+
+        comm.innerText = msg;
+    }
+</script>
+
+</body>
+</html>
